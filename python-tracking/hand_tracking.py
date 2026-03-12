@@ -115,13 +115,14 @@ with mp_hands.Hands(
         max_num_hands = 1, #片手だけを検出
         min_detection_confidence = 0.5,
         static_image_mode = False) as hands:
-
+    print("0")
     # カメラがついている間
     while cap.isOpened():
         #戻り値を同時に代入しているだけ
         success, frame = cap.read()
         if not success:
             continue
+        print("1")
 
         # MediaPipeはRGB形式を扱うので、OpenCVのBGR形式から変換
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

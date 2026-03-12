@@ -1,0 +1,10 @@
+services:
+  # Web版のサーバー環境
+  web-server:
+    build: ./web-implementation
+    container_name: elucidator-web
+    volumes:
+      - ./web-implementation:/app/web-implementation
+    working_dir: /app/web-implementation
+    ports:
+      - "3000:3000"
