@@ -1,0 +1,6 @@
+/* 
+webCam
+*/
+.webCam {
+    transform: scaleX(-1);
+}
