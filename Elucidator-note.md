@@ -89,3 +89,58 @@
     * **同期コールバック**
         外部の関数の呼び出し直後に呼び出される。以下の場合、`value = 2`が出力される。
     * **非同期コールバック**
+        非同期処理が完了した時点で呼び出される。以下の場合、`value = 1`が出力される。
+    ```JavaScript
+    let value = 1;
+
+    doSomething(() => {
+    value = 2;
+    });
+
+    console.log(value);
+    ```
+4. <mark>**同期処理・非同期処理 未理解** </mark> <a href="https://developer.mozilla.org/ja/docs/Learn_web_development/Extensions/Async_JS/Introducing"> MDN</a>
+- **同期処理**
+    * 各行が前の行の処理結果に依存しているため、前の行の処理が終わるまで、次の処理に進まない。
+    * 長時間実行される同期処理があると、その間、他の処理ができなくて困る。(JSはシングルスレッド)
+    * 長時間実行される同期処理として、今回使っている。`getUserMedia`などがある。
+- **非同期処理**
+    - 長い処理を実行している間に別のスレッドを立てるなどして、処理を中断させないようにすること。最終的に処理が完了したら、その結果を通知する。
+- **`Promise`**
+    - `promise`オブジェクトは、非同期処理の完了もしくは失敗を表すオブジェクト。
+    - 基本的な使い方としては、プロミスはコールバック関数に渡すかわりに、関数が返したオブジェクトに対してコールバックを登録するようにするというもの。
+
+
+明日整理する。
+memo 
+```JavaScript
+// 非同期処理を伴う関数定義にasyncをつける。
+// 非同期処理を伴う関数実行時にawaitをつけることで、その処理の完了を待つ。
+// でも、これって何がいいの？
+// 非同期処理は、待たずに、他の処理をできるのがメリットなのでは？
+// 結果がないとだめな処理で、困るからawaitとかを使うのはわかるのだけど、なら、なぜ非同期処理として定義されているの？
+// 最初から、同期処理としてメソッドつければいいのに。
+/* 同期処理だと、画面が完全にフリーズしてしまう */
+const createHandLandmarker = async () => {
+    // await つけると、その非同期処理が完了するまで、次の処理に進まない。
+    /* await は「この行の処理が終わるまでこの関数の中では待つよ。
+    でも、ブラウザ君は他の仕事
+    （映像を流すとか、ボタンのキラキラアニメーションを動かすとか）
+    をしてていいよ」という指示 */
+    /* MediaPipeの初期設定 */
+    const vision = await FilesetResolver.forVisionTasks(
+        // wasmへのパス?
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+    const handLandmarker = await HandLandmarker.createFromOptions(
+        vision,
+        {
+            baseOption: {
+                // .taskファイルへのpath
+                modelAssetPath: "./models/hand_landmarker.task"
+            },
+            runningMode: "VIDEO",
+            numHands: 2,
+        });
+}
+```
