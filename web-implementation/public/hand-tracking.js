@@ -6,7 +6,11 @@ import {
 
 /* グローバル変数 */
 const video = document.getElementById("webCam");
-let handLandmarker; // 空の箱を用意
+let handLandmarker; // 空の箱をグローバルに用意
+let lastVideoTime = -1;
+let isCamRunning = false;
+const WristId = 0;
+
 
 /* エントリーポイントの指定 */
 document.addEventListener("DOMContentLoaded", () => {
@@ -17,13 +21,14 @@ document.addEventListener("DOMContentLoaded", () => {
 Main 
 */
 function main() {
-    camOn();
+    camStartBtn();
+    camStopBtn();
 }
 
 /* 
 button camOn 
 */
-function camOn() {
+function camStartBtn() {
     // ボタンを取得
     const btn = document.getElementById('startButton');
 
@@ -32,10 +37,35 @@ function camOn() {
     btn.addEventListener('click', startCamera);
 }
 
+function camStopBtn() {
+    // ボタンを取得
+    const btn = document.getElementById('stopButton');
+
+    // クリックされたら、カメラと解析を停止
+    btn.addEventListener('click', stopAll);
+}
+
+function stopAll() { 
+    // ループフラグを折る。
+    isCamRunning = false;
+    
+    // カメラの電源を完全に切る
+    const stream = video.srcObject;
+    if (stream) {
+        const track = stream.getTracks()[0];
+        // カメラを停止
+        track.stop();
+        // ソースを取り除く
+        // ここで、stream = null にすると、constantをいじるなと怒られる。
+        video.srcObject = null;
+    }
+}
+
 /* 
 start Camera
 */
 function startCamera() {
+    isCamRunning = true;
     // カメラの映像を取得 
     navigator.mediaDevices.getUserMedia({video: true, audio: false})
         // カメラが取得できた時に実行
@@ -62,13 +92,44 @@ const createHandLandmarker = async () => {
     handLandmarker = await HandLandmarker.createFromOptions(
         vision,
         {
-            baseOption: {
+            baseOptions: {
                 // .taskファイルへのpath
                 modelAssetPath: "./models/hand_landmarker.task"
             },
             runningMode: "VIDEO",
             numHands: 2,
         });
+    /* 解析ループを呼び出す */
+    renderLoop();
 }
 
-/* requestAnimationFrame調べる */
+/* 
+解析用のループ(毎フレームごとに解析) 
+*/
+// 返り値はなし
+function renderLoop() {
+    // framecont
+    let fc = 0;
+    /* フレーム更新がされている場合 */
+    if (video.currentTime > 0 && video.currentTime !== lastVideoTime) {
+        // 現在の時刻を取得
+        let startTimeMs = performance.now();
+        // 解析
+        const detections = handLandmarker.detectForVideo(video, startTimeMs);
+        // ラストタイムの更新
+        lastVideoTime = video.currentTime;
+
+        // 手があってかつ、60フレームごと
+        if (detections.handednesses[0] !== undefined && fc % 590 === 0) {
+            // 結果の出力
+            console.log(detections.landmarks[0][WristId]);
+            // object、{landmarks:Array(num), worldLandmarks:Array(num), handednesses:Array(num)}
+            fc++;
+        }
+    }
+
+    /* 次の画面更新の際にもう一度、引数の関数を呼び出す。予約なので、()はつけない */
+    if (isCamRunning) {
+        requestAnimationFrame(renderLoop);
+    }
+}

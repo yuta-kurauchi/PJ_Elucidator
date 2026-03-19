@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>PJ_Elucidator Web</title>
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
 
     <script type="module" src="./hand-tracking.js" defer></script>
 </head>
 <body>
     <button class="button" id="startButton">Link Start!</button>
+    <button class="button" id="stopButton">Camera Stop</button>
     <h1>Webカメラの映像</h1>
-    <video id="webCam" autoplay muted></video>
+    <video class="webCam" id="webCam" autoplay muted>カメラが読み込めません</video>
     <canvas id="output_canvas" width="1280px" height="720px"></canvas>
 </body>
 </html>
