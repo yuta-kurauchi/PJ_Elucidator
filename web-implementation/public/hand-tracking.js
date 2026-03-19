@@ -4,12 +4,21 @@ import {
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
+/* Three.jsのインポート */
+// * as name はモジュールの全てのexportをimportし、名前空間として管理する。
+import * as THREE from 'https://unpkg.com/three@0.162.0/build/three.module.js';
+
 /* グローバル変数 */
 const video = document.getElementById("webCam");
+const WRIST = 0;
+const THUMB = 1;
+const MIDDLE = 9;
+const PINKY = 17;
 let handLandmarker; // 空の箱をグローバルに用意
+let width, height; // 画面サイズの変数を宣言
+let palmNormal; // 法線ベクトル格納用
 let lastVideoTime = -1;
 let isCamRunning = false;
-const WristId = 0;
 
 
 /* エントリーポイントの指定 */
@@ -76,8 +85,11 @@ function startCamera() {
         .catch((error) => {
             console.error('カメラの起動に失敗しました:', error);
         });
-        /* ランドマークの初期化 */
-        createHandLandmarker();
+    // 動画のサイズを取得
+    width = video.videoWidth;
+    height = video.videoHeight;
+    /* ランドマークの初期化 */
+    createHandLandmarker();
 }
 
 /* HandLandmarkの初期化 */
@@ -97,7 +109,7 @@ const createHandLandmarker = async () => {
                 modelAssetPath: "./models/hand_landmarker.task"
             },
             runningMode: "VIDEO",
-            numHands: 2,
+            numHands: 1,
         });
     /* 解析ループを呼び出す */
     renderLoop();
@@ -114,16 +126,58 @@ function renderLoop() {
     if (video.currentTime > 0 && video.currentTime !== lastVideoTime) {
         // 現在の時刻を取得
         let startTimeMs = performance.now();
-        // 解析
+        // 解析 何でconstでいいのだろうか。毎回変わるよね？代入でなく毎回初期化だからいいのかな？
+        // 毎回初期化されているからok 
+        // constはそのブロック内では変更できないというものなので、ループごとに別のブロックとして認識されるから、大丈夫
+        // object、{landmarks:Array(num), worldLandmarks:Array(num), handednesses:Array(num)}
         const detections = handLandmarker.detectForVideo(video, startTimeMs);
         // ラストタイムの更新
         lastVideoTime = video.currentTime;
 
         // 手があってかつ、60フレームごと
-        if (detections.handednesses[0] !== undefined && fc % 590 === 0) {
+        // フレーム条件の機能していないかも
+        if (detections.handednesses[0] !== undefined && fc % 59 === 0) {
+            /* ベクトルの作成 */
+            const landmark = detections.landmarks[0];
+            const worldLandmarks = detections.worldLandmarks[0];
+            const isRightHand = detections.handednesses[0].categoryName === "Right";
+            /* 手首の座標を実寸大に変更 */
+            const wristPosRial = new THREE.Vector3(
+                landmark[WRIST].x * width, 
+                landmark[WRIST].y * height, 
+                landmark[WRIST].z
+            );
+            /* 手首からの相対ベクトルを計算 */
+            // pythonの時はunityでの動きをリアルスケールにするために、worldを使ってた
+            const thumb_vec = makeVector(THUMB, landmark);
+            const middle_vec = makeVector(MIDDLE, landmark);
+            const pinky_vec = makeVector(PINKY, landmark);
+            /* 掌の法線ベクトルを計算 */
+            if (isRightHand) {
+                palmNormal = new THREE.Vector3().crossVectors(thumb_vec, pinky_vec);
+            }
+            else {
+                palmNormal = new THREE.Vector3().crossVectors(pinky_vec, thumb_vec);
+            }
+
+            /* 姿勢制御に必要なもの */
+            /* 
+            data.json = {
+                "wristPos" : wristPosRial,
+                "palmNormal" : palmNormal,
+                "middleVec" : middle_vec.
+                "isRight" : isRightHand
+            }
+            */
+
+            /* これがうまくいってない */
+            // 手の左右判定はあっている。
+            // 系も考慮して、負が上にしている。
+            const isUp = palmNormal.y < 0;
+
+             
             // 結果の出力
-            console.log(detections.landmarks[0][WristId]);
-            // object、{landmarks:Array(num), worldLandmarks:Array(num), handednesses:Array(num)}
+            console.log(`isUp : ${isUp}`);
             fc++;
         }
     }
@@ -132,4 +186,23 @@ function renderLoop() {
     if (isCamRunning) {
         requestAnimationFrame(renderLoop);
     }
+}
+
+/* 
+Three.jsのVector3クラスを使ってベクトルに変換
+*/
+function makeVector(id, landmark) {
+    const target_pos = new THREE.Vector3(
+        landmark[id].x,
+        landmark[id].y,
+        landmark[id].z
+    );
+    const wrist_pos = new THREE.Vector3(
+        landmark[WRIST].x,
+        landmark[WRIST].y,
+        landmark[WRIST].z
+    );
+    // 手首からの相対ベクトルを作成
+    const relative_vec = new THREE.Vector3().subVectors(target_pos, wrist_pos);
+    return relative_vec;
 }
