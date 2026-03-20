@@ -105,7 +105,7 @@ mesh_drawing_spec = mp_drawing.DrawingSpec(thickness = 2, color = (0, 255, 0)) #
 mark_drawing_spec = mp_drawing.DrawingSpec(thickness = 2, circle_radius = 1, color = (0, 0, 255)) # 赤の点でランドマークを表示
 
 # カメラの読み込み(0番を指定)
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # ソケットのインスタンス化
 init_udp_socket()
@@ -115,14 +115,13 @@ with mp_hands.Hands(
         max_num_hands = 1, #片手だけを検出
         min_detection_confidence = 0.5,
         static_image_mode = False) as hands:
-    print("0")
+
     # カメラがついている間
     while cap.isOpened():
         #戻り値を同時に代入しているだけ
         success, frame = cap.read()
         if not success:
             continue
-        print("1")
 
         # MediaPipeはRGB形式を扱うので、OpenCVのBGR形式から変換
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
