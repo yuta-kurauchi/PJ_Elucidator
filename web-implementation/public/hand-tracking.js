@@ -6,7 +6,11 @@ import {
 
 /* Three.jsのインポート */
 // * as name はモジュールの全てのexportをimportし、名前空間として管理する。
-import * as THREE from 'https://unpkg.com/three@0.162.0/build/three.module.js';
+import * as THREE from "three";
+
+/* 3d-spaceからのimport */
+import { init3D } from "./3d-space";
+
 
 /* グローバル変数 */
 const video = document.getElementById("webCam");
@@ -32,6 +36,7 @@ Main
 function main() {
     camStartBtn();
     camStopBtn();
+    init3D();
 }
 
 /* 
@@ -120,8 +125,6 @@ const createHandLandmarker = async () => {
 */
 // 返り値はなし
 function renderLoop() {
-    // framecont
-    let fc = 0;
     /* フレーム更新がされている場合 */
     if (video.currentTime > 0 && video.currentTime !== lastVideoTime) {
         // 現在の時刻を取得
@@ -134,9 +137,8 @@ function renderLoop() {
         // ラストタイムの更新
         lastVideoTime = video.currentTime;
 
-        // 手があってかつ、60フレームごと
-        // フレーム条件の機能していないかも
-        if (detections.handednesses[0] !== undefined && fc % 59 === 0) {
+        // 手がある場合
+        if (detections.handednesses[0] !== undefined) {
             /* ベクトルの作成 */
             const landmark = detections.landmarks[0];
             const worldLandmarks = detections.worldLandmarks[0];
@@ -180,7 +182,6 @@ function renderLoop() {
              
             // 結果の出力
             console.log(`isUp : ${isUp}`);
-            fc++;
         }
     }
 

@@ -46,7 +46,7 @@
 
 ### 📍 基本セットアップ（箱庭の準備）
 
-- [ ] **ステップ1：Three.js のライブラリを読み込む**
+- [x] **ステップ1：Three.js のライブラリを読み込む**
   - MediaPipeの時と同様に、CDNを使ってESモジュール（`import`）形式でThree.jsを導入する。
   - *検索キーワード:* `Three.js ES module CDN 導入`, `Three.js 公式ドキュメント Installation`
 

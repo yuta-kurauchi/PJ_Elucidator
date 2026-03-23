@@ -5,13 +5,22 @@
     <title>PJ_Elucidator Web</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
 
+    <script type="importmap">
+        {
+            "imports" : {
+                "three" : "https://unpkg.com/three@0.162.0/build/three.module.js"
+            }
+        }
+    </script>
+
     <script type="module" src="./hand-tracking.js" defer></script>
+    <script type="module" src="./3d-space.js" defer></script>
 </head>
 <body>
     <button class="button" id="startButton">Link Start!</button>
     <button class="button" id="stopButton">Camera Stop</button>
     <h1>Webカメラの映像</h1>
     <video class="webCam" id="webCam" autoplay muted>カメラが読み込めません</video>
-    <canvas id="output_canvas" width="1280px" height="720px"></canvas>
+    <canvas id="output_canvas"></canvas>
 </body>
 </html>
