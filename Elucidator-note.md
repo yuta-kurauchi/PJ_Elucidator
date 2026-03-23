@@ -149,3 +149,4 @@ const createHandLandmarker = async () => {
         });
 }
 ```
+5. **CDNのimport**

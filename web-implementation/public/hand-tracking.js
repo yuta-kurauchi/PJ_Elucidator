@@ -140,7 +140,9 @@ function renderLoop() {
             /* ベクトルの作成 */
             const landmark = detections.landmarks[0];
             const worldLandmarks = detections.worldLandmarks[0];
-            const isRightHand = detections.handednesses[0].categoryName === "Right";
+            // [0]だとだめ、二次元になっているので、こう指定しないとだめ
+            // これのせいで、上下判定できていなかった。
+            const isRightHand = detections.handednesses[0][0].categoryName === "Right";
             /* 手首の座標を実寸大に変更 */
             const wristPosRial = new THREE.Vector3(
                 landmark[WRIST].x * width, 
