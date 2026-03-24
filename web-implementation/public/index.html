@@ -19,8 +19,20 @@
 <body>
     <button class="button" id="startButton">Link Start!</button>
     <button class="button" id="stopButton">Camera Stop</button>
-    <h1>Webカメラの映像</h1>
-    <video class="webCam" id="webCam" autoplay muted>カメラが読み込めません</video>
-    <canvas id="output_canvas"></canvas>
+
+    <ul class="grid">
+        <li class="grid-item">
+            <dt class="video-headline">Webカメラの映像</dt>
+            <dd class="video-show-window">
+                <video class="webCam" id="webCam" autoplay muted>カメラが読み込めません</video>
+            </dd>
+        </li>
+        <li class="grid-item">
+            <dt class="video-headline">トラッキング映像</dt>
+            <dd class="video-show-window">
+                <div id="output_canvas"></div>
+            </dd>
+        </li>
+    </ul>
 </body>
 </html>

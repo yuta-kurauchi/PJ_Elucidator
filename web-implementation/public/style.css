@@ -4,3 +4,21 @@ webCam
 .webCam {
     transform: scaleX(-1);
 }
+
+.grid {
+    list-style: none;
+    display: flex;
+    padding: 0;
+}
+.grid-item {
+    width: 50%;
+}
+
+.video-headline {
+    text-align: center;
+}
+
+.video-show-window {
+    padding: 0 20PX;
+    margin: 0;
+}

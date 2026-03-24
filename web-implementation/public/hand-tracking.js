@@ -13,7 +13,7 @@ import {
 import * as THREE from "three";
 
 // 3d-space.jsのexport
-// import { init3D } from "./3d-space.js";
+import { Canvas } from "./3d-space.js";
 
 
 /* 
@@ -41,6 +41,7 @@ let width, height;
 let palmNormal;
 let lastVideoTime = -1; // 画面更新のフラグを初期化
 let isCamRunning = false; // カメラのフラグを初期化
+let canvas;
 
 
 /* 
@@ -56,7 +57,6 @@ Main
 function main() {
     camStartBtn();
     camStopBtn();
-    // init3D();
 }
 
 /* 
@@ -79,6 +79,24 @@ function camStopBtn() {
     btn.addEventListener('click', stopAll);
 }
 
+/* 
+init 3D 
+*/
+function init3D(stream) {
+    /* 3Dの初期化 */
+    const videoTrack = stream.getVideoTracks()[0]; // Video Trackを取得
+    const settings = videoTrack.getSettings(); // 現在のカメラ設定を取得
+    // サイズを取得
+    width = settings.width;
+    height = settings.height;
+    // console.log(width, height);
+    /* キャンバスの初期化 */
+    canvas = new Canvas(width, height);    
+}
+
+/*
+stopCamAll 
+*/
 function stopAll() { 
     // ループフラグを折る。
     isCamRunning = false;
@@ -107,13 +125,11 @@ function startCamera() {
         // 帰ってきたプロミスに対してコールバック実行。
         .then((stream) => {
             video.srcObject = stream; // 映像を video タグに表示
+            init3D(stream);     
         })
         .catch((error) => {
             console.error('カメラの起動に失敗しました:', error);
         });
-    // 動画のサイズを取得
-    width = video.videoWidth;
-    height = video.videoHeight;
     /* ランドマークの初期化 */
     createHandLandmarker();
 }
