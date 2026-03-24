@@ -2,6 +2,13 @@ import * as THREE from "three";
 
 export class Canvas {
     constructor(width, height) {
+        /* 姿勢制御用のデータ */
+        this.handData = {
+            "wristPos": undefined, // 手の座標を示すため
+            "palmNormal": undefined, // 手の表裏を示すため
+            "middleVec": undefined, // 手の向きを示すため
+            "isRight": undefined //右手の場合のみ動かすため
+        }
        /* レンダラーを作成 */
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setSize(width, height); // 描画サイズ
@@ -36,10 +43,21 @@ export class Canvas {
         /* ループの予約 */
         // コールバック関数だと、thisが参照元を見失い、undefinedになる。
         this.renderer.setAnimationLoop(() => {
-            // 回転
-            this.box.rotation.y += 0.01;
+            // 吹っ飛ぶので、座標の仕組み調べる。
+            if (this.handData.wristPos !== undefined && this.handData.isRight) {
+                this.box.position.copy(this.handData.wristPos);
+                
+            }
+            // console.log(this.handData);
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
         });
+    }
+    /* ハンドデータの更新 */
+    upDateData(data) {
+        this.handData.wristPos = data.wristPos;
+        this.handData.palmNormal = data.palmNormal;
+        this.handData.middleVec = data.middleVec;
+        this.handData.isRight = data.isRight;
     }
 }

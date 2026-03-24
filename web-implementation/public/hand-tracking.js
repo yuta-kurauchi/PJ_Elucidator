@@ -1,7 +1,6 @@
 /*
 Import
 */
-
 // MediaPipeのクラス
 import {
     HandLandmarker,
@@ -38,7 +37,10 @@ let smoothedVector = {
 const video = document.getElementById("webCam"); // videoのdom
 let handLandmarker;
 let width, height;
+let wristPosRial;
 let palmNormal;
+let middle_vec;
+let isRightHand;
 let lastVideoTime = -1; // 画面更新のフラグを初期化
 let isCamRunning = false; // カメラのフラグを初期化
 let canvas;
@@ -91,7 +93,7 @@ function init3D(stream) {
     height = settings.height;
     // console.log(width, height);
     /* キャンバスの初期化 */
-    canvas = new Canvas(width, height);    
+    canvas = new Canvas(width, height); 
 }
 
 /*
@@ -194,7 +196,7 @@ function renderLoop() {
             // console.log(JSON.stringify(smoothedVector));
 
             /* 手首の座標を実寸大に変更 */
-            const wristPosRial = new THREE.Vector3(
+            wristPosRial = new THREE.Vector3(
                 smoothedVector[WRIST].x * width, 
                 smoothedVector[WRIST].y * height, 
                 smoothedVector[WRIST].z
@@ -203,12 +205,12 @@ function renderLoop() {
             /* 手首からの相対ベクトルを計算 */
             // pythonの時はunityでの動きをリアルスケールにするために、worldを使ってた
             const thumb_vec = makeRelativeVec(THUMB);
-            const middle_vec = makeRelativeVec(MIDDLE);
+            middle_vec = makeRelativeVec(MIDDLE);
             const pinky_vec = makeRelativeVec(PINKY);
 
             /* 掌の法線ベクトルを計算 */
             // 右手かどうかの判断
-            const isRightHand = detections.handednesses[0][0].categoryName === "Right";
+            isRightHand = detections.handednesses[0][0].categoryName === "Right";
             if (isRightHand) {
                 palmNormal = new THREE.Vector3().crossVectors(thumb_vec, pinky_vec);
             }
@@ -216,24 +218,24 @@ function renderLoop() {
                 palmNormal = new THREE.Vector3().crossVectors(pinky_vec, thumb_vec);
             }
 
-            /* 姿勢制御に必要なもの */
-            /* 
-            data.json = {
-                "wristPos" : wristPosRial, // 手の座標を示すため
-                "palmNormal" : palmNormal, // 手の表裏を示すため
-                "middleVec" : middle_vec, // 手の向きを示すため
-                "isRight" : isRightHand //右手の場合のみ動かすため
-            }
-            */
-
+            // 
             /* 手の上下判定(デバック用) */
-            const isUp = palmNormal.y < 0;
-            console.log(`isUp : ${isUp}`);
+            // const isUp = palmNormal.y > 0;
+            // console.log(`isUp : ${isUp}`);
         }
         // 手がない場合
         else {
             resetSmoothedVec();
         }
+
+        /* Canvasクラスのメンバ変数を更新して3d-space内で値を使えるようにする。 */
+        const data = {
+            "wristPos": wristPosRial, // 手の座標を示すため
+            "palmNormal": palmNormal, // 手の表裏を示すため
+            "middleVec": middle_vec, // 手の向きを示すため
+            "isRight": isRightHand //右手の場合のみ動かすため
+        }
+        canvas.upDateData(data);
     }
 
     /* 次の画面更新の際にもう一度、引数の関数を呼び出す。予約なので、()はつけない */
@@ -249,8 +251,9 @@ function makePosVec(landmark) {
     ID.forEach((id) => {
         // 生データのposVecを作成
         const rawPosVec = new THREE.Vector3(
-            landmark[id].x,
-            landmark[id].y,
+            // x,yを反転して、Three.jsで扱いやすいように、右手系にする。
+            (1 - landmark[id].x),
+            (1 - landmark[id].y),
             landmark[id].z
         );
         // 前回のデータがない場合
