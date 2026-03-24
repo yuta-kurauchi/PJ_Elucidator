@@ -50,7 +50,7 @@
   - MediaPipeの時と同様に、CDNを使ってESモジュール（`import`）形式でThree.jsを導入する。
   - *検索キーワード:* `Three.js ES module CDN 導入`, `Three.js 公式ドキュメント Installation`
 
-- [ ] **ステップ2：3大要素（Scene, Camera, Renderer）の作成**
+- [x] **ステップ2：3大要素（Scene, Camera, Renderer）の作成**
   - **Scene:** オブジェクトを置くための空間を作る。
   - **Camera:** 空間を映し出すカメラ（`PerspectiveCamera`）を設定し、引いた位置（Z軸方向など）に配置する。
   - **Renderer:** 3D空間を2Dの画面に描画するエンジン（`WebGLRenderer`）を作成し、HTMLにすでにある `<canvas id="output_canvas">` に紐づける。
@@ -60,18 +60,18 @@
 
 ### 📍 オブジェクトと照明の配置
 
-- [ ] **ステップ3：テスト用のオブジェクト（Mesh）を置く**
+- [x] **ステップ3：テスト用のオブジェクト（Mesh）を置く**
   - Three.js では **Geometry（形の骨組み）** と **Material（表面の質感・色）** を組み合わせて **Mesh（実体）** を作る。
   - まずはシンプルな箱（`BoxGeometry`）を作成して、Sceneに追加（`scene.add`）する。
   - *検索キーワード:* `Three.js Mesh Geometry Material 違い`, `Three.js BoxGeometry 使い方`
 
-- [ ] **ステップ4：ライト（照明）を当てる**
+- [x] **ステップ4：ライト（照明）を当てる**
   - 光がないとオブジェクトが真っ黒（または立体的でないベタ塗り）になってしまう。全体を照らす環境光（`AmbientLight`）や、太陽のような平行光源（`DirectionalLight`）を追加する。
   - *検索キーワード:* `Three.js AmbientLight DirectionalLight`
 
 ### 📍 描画ループの作成
 
-- [ ] **ステップ5：3D空間の描画ループ（Update処理）を作る**
+- [x] **ステップ5：3D空間の描画ループ（Update処理）を作る**
   - `requestAnimationFrame` を使って、Three.js の画面を毎フレーム更新（`renderer.render(scene, camera)`）する無限ループ関数を作る。
   - ループの中で、ステップ3で作った箱を少しずつ回転（例: `mesh.rotation.x += 0.01`）させて、3D空間が正しく動いていることを確認する。
   - *検索キーワード:* `Three.js requestAnimationFrame アニメーション`, `Three.js renderer.render`

@@ -89,7 +89,7 @@
     ```JS
     // getTrackで、stream中のデバイスの配列を取得
     // その各要素をforEachで取り出して、stopさせ。。
-    stream.getTrack().forEach(track => track.stop());
+    stream.getTracks().forEach(track => track.stop());
     ```
 2. **`addEventListener`の関数実行タイミング**
     ```JavaScript
@@ -205,11 +205,40 @@ import * as THREE from "three";
     そのため、ループごとに別のブロックとして認識されるから、ブロック内で変更を加えるもの以外はOK。
     <mark>逆に言うと、ループごとに初期化されてしまうので、前のループの値を使いたい場合は、グローバルに`let`で宣言する必要がある。</mark>
 
+7. **ブラウザをフリーズさせる `while(true)` の罠**
+    JavaScriptは「シングルスレッド（1人の職人が全作業を順番にこなす）」で動いている。
+    そのため、トップレベルで `while(true)` などの無限ループを回すと、職人がそこから抜け出せなくなり、「画面の描画」や「カメラの取得」など他の処理が一切できずブラウザがフリーズする。
+    * **対策:** 毎フレームの変化を監視したい場合は、`requestAnimationFrame` で回している描画ループ（`renderLoop` など）の中に `console.log` を仕込む。
+
+8. **`console.log` の罠（参照渡し）**
+    オブジェクト（`{}` や `Vector3` など）を `console.log` で出力した際、ブラウザのコンソールは「その瞬間のデータ」ではなく「メモリ上の住所（参照）」を表示する。
+    そのため、後からコンソールの `▶` を開いて中身を確認しようとすると、すでにループ処理などで最新の値に上書きされた後のデータが表示されてしまう。
+    * **対策:** その瞬間のスナップショットを正確にログに残したい場合は、一度文字列に変換する。
+    `console.log(JSON.stringify(オブジェクト));`
+
+9. **記憶喪失の `this` と アロー関数**
+    クラス内で作ったメソッドを、`requestAnimationFrame` や `addEventListener` などのコールバックとして外部に渡すと、実行される頃には `this` が「自分自身のクラス」を指さなくなり（記憶喪失）、`undefined` エラーになる。
+    * **対策:** アロー関数 `() => {}` で包んでから渡す。<mark>アロー関数には「自分が定義された時の this を一生忘れない（束縛する）」</mark>という強力な仕様がある。
+    ```javascript
+    // ❌ エラーになる渡し方
+    this.renderer.setAnimationLoop(this.tick);
+    
+    // ⭕️ 正しい渡し方
+    this.renderer.setAnimationLoop(() => {
+        this.tick();
+    });
+    ```
+
 ---
 ## MediaPipe for Web
 公式ドキュメント見ればわかる。
 <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js#video">MP公式ドキュメント</a>
 detectionで得られる結果がどのようなデータ構造をしているのかをconsole.logでしっかり調べることが大事
+
+* **Y軸の向き（HTML vs 3D空間）**
+    * **OpenCV / HTML Canvas:** 画面の左上が(0, 0)で、**下に行くほどYがプラス**。
+    * **Three.js / Unity:** **上に行くほどYがプラス**。
+    座標を3D空間に持ち込む際は、どこかでY軸を反転させる（`1 - y` など）必要がある。
 
 ---
 ## Three.js
@@ -217,3 +246,23 @@ detectionで得られる結果がどのようなデータ構造をしている�
 メソッドの紹介見ればわかる。
 <a href="https://qiita.com/aa_debdeb/items/c58d5eda9a4052b5dd2f">メソッド</a>
 2. `Render`
+3. **既存のキャンバスへのレンダラー紐づけ**
+    HTML上にすでに用意してある `<canvas>` を Three.js で使いたい場合、新しく生成した要素を `appendChild` すると「キャンバスの中にキャンバスが入る」という異常な構造になりエラーになる。
+    * **対策:** レンダラーのインスタンス化時に、引数として既存のキャンバスを渡す。
+    ```javascript
+    const canvasElement = document.getElementById("output_canvas");
+    this.renderer = new THREE.WebGLRenderer({ canvas: canvasElement });
+    ```
+
+4. **`Vector3` の破壊的メソッドと `lerp`**
+    Three.jsのベクトル計算（`.add()` や `.multiplyScalar()` など）は、結果を新しく返すのではなく**自分自身の値を直接書き換えてしまう（破壊的変更）**仕様になっている。
+    * **対策:** 元のデータを残したい場合は `.clone()` や `.copy()` を使う。
+    * **EMA（指数移動平均）の最強メソッド:** 前回の座標と新しい座標を一定の割合でブレンドして手ブレを抑える処理は、`.lerp()` を使うと1行で完結する。
+    ```javascript
+    // 前回の座標に、今回の新しい座標を 20% (0.2) だけ混ぜる（近づける）
+    smoothedVector.lerp(rawPosVec, 0.2);
+    ```
+
+5. **フレームレートに依存しないアニメーション**
+    `mesh.rotation.y += 0.01` のように毎フレーム固定値を足す処理だと、AIの計算などで処理落ちした時（FPSが下がった時）に動きが遅くなってしまう。
+    * **対策:** Unityの `Time.deltaTime` と同じように、Three.jsの `THREE.Clock` を使って「前回から何秒経過したか」を取得し、それを掛け算して動かす。
