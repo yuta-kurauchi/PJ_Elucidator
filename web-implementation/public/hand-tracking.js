@@ -1,31 +1,51 @@
-/* MediaPipeのクラスをインポート */
+/*
+Import
+*/
+
+// MediaPipeのクラス
 import {
     HandLandmarker,
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-/* Three.jsのインポート */
+// Three.js
 // * as name はモジュールの全てのexportをimportし、名前空間として管理する。
 import * as THREE from "three";
 
-/* 3d-spaceからのimport */
-import { init3D } from "./3d-space";
+// 3d-space.jsのexport
+// import { init3D } from "./3d-space.js";
 
 
-/* グローバル変数 */
-const video = document.getElementById("webCam");
+/* 
+グローバル変数 
+*/
+// LandmarkID
 const WRIST = 0;
 const THUMB = 1;
 const MIDDLE = 9;
 const PINKY = 17;
-let handLandmarker; // 空の箱をグローバルに用意
-let width, height; // 画面サイズの変数を宣言
-let palmNormal; // 法線ベクトル格納用
-let lastVideoTime = -1;
-let isCamRunning = false;
+const ID = [WRIST, THUMB, MIDDLE, PINKY];
+// EMA用
+const ALPHA = 0.2; // 生データの比率
+// 平滑化されたベクトルの格納用(Vector3)
+let smoothedVector = {
+    0:null,
+    1:null,
+    9:null,
+    17:null
+}
+// 箱の用意(グローバルにつかうため)
+const video = document.getElementById("webCam"); // videoのdom
+let handLandmarker;
+let width, height;
+let palmNormal;
+let lastVideoTime = -1; // 画面更新のフラグを初期化
+let isCamRunning = false; // カメラのフラグを初期化
 
 
-/* エントリーポイントの指定 */
+/* 
+エントリーポイントの指定 
+*/
 document.addEventListener("DOMContentLoaded", () => {
     main();
 });
@@ -36,7 +56,7 @@ Main
 function main() {
     camStartBtn();
     camStopBtn();
-    init3D();
+    // init3D();
 }
 
 /* 
@@ -47,7 +67,7 @@ function camStartBtn() {
     const btn = document.getElementById('startButton');
 
     // クリックされたらカメラon
-    // ()つけると即時実行になるので
+    // ()つけると即時実行になるので注意
     btn.addEventListener('click', startCamera);
 }
 
@@ -66,6 +86,7 @@ function stopAll() {
     // カメラの電源を完全に切る
     const stream = video.srcObject;
     if (stream) {
+        // getUserMediaで開いたデバイスのindex:0のtrackを取得
         const track = stream.getTracks()[0];
         // カメラを停止
         track.stop();
@@ -97,7 +118,9 @@ function startCamera() {
     createHandLandmarker();
 }
 
-/* HandLandmarkの初期化 */
+/* 
+HandLandmarkの初期化 
+*/
 const createHandLandmarker = async () => {
     /* MediaPipeの初期設定 */
     const vision = await FilesetResolver.forVisionTasks(
@@ -128,35 +151,48 @@ function renderLoop() {
     /* フレーム更新がされている場合 */
     if (video.currentTime > 0 && video.currentTime !== lastVideoTime) {
         // 現在の時刻を取得
-        let startTimeMs = performance.now();
-        // 解析 何でconstでいいのだろうか。毎回変わるよね？代入でなく毎回初期化だからいいのかな？
-        // 毎回初期化されているからok 
-        // constはそのブロック内では変更できないというものなので、ループごとに別のブロックとして認識されるから、大丈夫
-        // object、{landmarks:Array(num), worldLandmarks:Array(num), handednesses:Array(num)}
-        const detections = handLandmarker.detectForVideo(video, startTimeMs);
+        const startTimeMs = performance.now();
         // ラストタイムの更新
         lastVideoTime = video.currentTime;
+        // 解析結果を取得
+        /* detections = {
+            landmarks:Array(num), 
+            worldLandmarks:Array(num), 
+            // 二次元なので注意
+            handednesses:Array(0)(num)
+        } */
+        const detections = handLandmarker.detectForVideo(video, startTimeMs);
 
         // 手がある場合
         if (detections.handednesses[0] !== undefined) {
-            /* ベクトルの作成 */
+            /* Landmarkの取得 */
             const landmark = detections.landmarks[0];
-            const worldLandmarks = detections.worldLandmarks[0];
-            // [0]だとだめ、二次元になっているので、こう指定しないとだめ
-            // これのせいで、上下判定できていなかった。
-            const isRightHand = detections.handednesses[0][0].categoryName === "Right";
+            // const worldLandmarks = detections.worldLandmarks[0];
+
+            /* 平滑化された位置ベクトルを作成 */
+            makePosVec(landmark);
+
+            // /* 座標の確認(デバック用) */
+            // 参照渡しにならないようにする方法まとめる。
+            // オブジェクトを一度文字列（JSON）に変換してから表示する
+            // console.log(JSON.stringify(smoothedVector));
+
             /* 手首の座標を実寸大に変更 */
             const wristPosRial = new THREE.Vector3(
-                landmark[WRIST].x * width, 
-                landmark[WRIST].y * height, 
-                landmark[WRIST].z
+                smoothedVector[WRIST].x * width, 
+                smoothedVector[WRIST].y * height, 
+                smoothedVector[WRIST].z
             );
+
             /* 手首からの相対ベクトルを計算 */
             // pythonの時はunityでの動きをリアルスケールにするために、worldを使ってた
-            const thumb_vec = makeVector(THUMB, landmark);
-            const middle_vec = makeVector(MIDDLE, landmark);
-            const pinky_vec = makeVector(PINKY, landmark);
+            const thumb_vec = makeRelativeVec(THUMB);
+            const middle_vec = makeRelativeVec(MIDDLE);
+            const pinky_vec = makeRelativeVec(PINKY);
+
             /* 掌の法線ベクトルを計算 */
+            // 右手かどうかの判断
+            const isRightHand = detections.handednesses[0][0].categoryName === "Right";
             if (isRightHand) {
                 palmNormal = new THREE.Vector3().crossVectors(thumb_vec, pinky_vec);
             }
@@ -167,21 +203,20 @@ function renderLoop() {
             /* 姿勢制御に必要なもの */
             /* 
             data.json = {
-                "wristPos" : wristPosRial,
-                "palmNormal" : palmNormal,
-                "middleVec" : middle_vec.
-                "isRight" : isRightHand
+                "wristPos" : wristPosRial, // 手の座標を示すため
+                "palmNormal" : palmNormal, // 手の表裏を示すため
+                "middleVec" : middle_vec, // 手の向きを示すため
+                "isRight" : isRightHand //右手の場合のみ動かすため
             }
             */
 
-            /* これがうまくいってない */
-            // 手の左右判定はあっている。
-            // 系も考慮して、負が上にしている。
+            /* 手の上下判定(デバック用) */
             const isUp = palmNormal.y < 0;
-
-             
-            // 結果の出力
             console.log(`isUp : ${isUp}`);
+        }
+        // 手がない場合
+        else {
+            resetSmoothedVec();
         }
     }
 
@@ -192,20 +227,46 @@ function renderLoop() {
 }
 
 /* 
-Three.jsのVector3クラスを使ってベクトルに変換
+位置ベクトルの計算 
 */
-function makeVector(id, landmark) {
-    const target_pos = new THREE.Vector3(
-        landmark[id].x,
-        landmark[id].y,
-        landmark[id].z
-    );
-    const wrist_pos = new THREE.Vector3(
-        landmark[WRIST].x,
-        landmark[WRIST].y,
-        landmark[WRIST].z
-    );
+function makePosVec(landmark) {
+    ID.forEach((id) => {
+        // 生データのposVecを作成
+        const rawPosVec = new THREE.Vector3(
+            landmark[id].x,
+            landmark[id].y,
+            landmark[id].z
+        );
+        // 前回のデータがない場合
+        if (smoothedVector[id] === null) {
+            // Vector3として代入
+            smoothedVector[id] = new THREE.Vector3(
+                rawPosVec.x,
+                rawPosVec.y,
+                rawPosVec.z
+            );
+        } else {
+            // 平滑化 (rawをALPHA(0.2)だけ混ぜる)
+            // 書き方とイメージまとめる。
+            smoothedVector[id].lerp(rawPosVec, ALPHA);
+        }
+    });
+}
+
+/*
+smothedVecのリセット 
+*/
+function resetSmoothedVec() {
+    ID.forEach((id) => {
+        smoothedVector[id] = null;
+    });
+}
+
+/* 
+手首からの相対ベクトルを作成
+*/
+function makeRelativeVec(id) {
     // 手首からの相対ベクトルを作成
-    const relative_vec = new THREE.Vector3().subVectors(target_pos, wrist_pos);
+    const relative_vec = new THREE.Vector3().subVectors(smoothedVector[id], smoothedVector[WRIST]); 
     return relative_vec;
 }
