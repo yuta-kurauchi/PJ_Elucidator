@@ -4,7 +4,7 @@
 1. **fileの送信方法**
     * **`get`メソッド**
         `res.sendFile`を使って特定のURLからのアクセスだけを`get`で受け取り、その時に結果として、特定のファイルを送信する。
-        ```express
+        ```JS
         app.get("/", (req, res) => {
             res.sendFile(path.join(__dirname, 'index.html'));
         });
@@ -13,14 +13,27 @@
             第一引数は場所の指定。エンドポイントの指定という。URLの最後のpathだから
             /の下の/userという場所にいるときの処理を書きたいなら、"/user" とすればよい。
             例を以下に示す。
-            ```express
-            app.get("/user", (req, res) => {
-                res.send("ユーザーです");
-            });
-            ```
+        ```JS
+        app.get("/user", (req, res) => {
+            res.send("ユーザーです");
+        });
+        ```
+        **`req`について**
+            `req`は`app.get`の第一引数で指定したpathに入ってきたHTTPリクエストを表すオブジェクトで、リクエストしてきた人のHTTP以下の情報を含んでいる。
+        ```JS
+        localhost:8000/hoge\?name=user1
+        このようなリンクでリクエストすると、
+        req.query.name にuser1という名前が入る。
+        ```
+        **`res`について**
+            `res`は指定されたパスに入ってきたリクエストに対するHTTPレスポンスを構成するためのオブジェクト。何かしら、そのアドレスに返信したりするのに使う。
+        ```JS
+        res.send("ユーザーです");
+        ```
+
     * **`public`フォルダの送信**
         公開するファイルを`public`フォルダにまとめて、そのフォルダごと送信する。
-        ```express
+        ```JS
         app.use(express.static(path.join(__dirname, 'folderNmae')))
         ```
 
@@ -58,6 +71,7 @@
 ---
 ## JavaScript
 1. **カメラ映像の取得**
+    **getUserMedia,(Promise)でデバイス(今回はカメラ)をOpen**
     ```JavaScript
     // 第一引数で、何を取得するかを選択
     navigator.mediaDevices.getUserMedia({video: true, audio: false})
@@ -68,6 +82,14 @@
         .catch((error) => {
             console.error("カメラの起動に失敗しました:", error)
         });
+    // .then, .catch は非同期処理のPromise結果を扱うメソッド
+    // Promise とは、非同期処理の操作が完了したときに結果を返すもの。
+    ```
+    **getUserMediaで取得,Openしたデバイスの閉じ方。**
+    ```JS
+    // getTrackで、stream中のデバイスの配列を取得
+    // その各要素をforEachで取り出して、stopさせ。。
+    stream.getTrack().forEach(track => track.stop());
     ```
 2. **`addEventListener`の関数実行タイミング**
     ```JavaScript
@@ -99,7 +121,7 @@
 
     console.log(value);
     ```
-4. <mark>**同期処理・非同期処理 未理解** </mark> <a href="https://developer.mozilla.org/ja/docs/Learn_web_development/Extensions/Async_JS/Introducing"> MDN</a>
+4. <mark>**同期処理・非同期処理 少しは理解したつもり** </mark> <a href="https://developer.mozilla.org/ja/docs/Learn_web_development/Extensions/Async_JS/Introducing"> MDN</a>
 - **同期処理**
     * 各行が前の行の処理結果に依存しているため、前の行の処理が終わるまで、次の処理に進まない。
     * 長時間実行される同期処理があると、その間、他の処理ができなくて困る。(JSはシングルスレッド)
@@ -150,3 +172,48 @@ const createHandLandmarker = async () => {
 }
 ```
 5. **CDNのimport**
+インポートの仕方はいくつかあるが、今主流なのは、Import 文を直接スクリプトに書くことで、importするやり方。
+```HTML
+<head>
+    <!-- headの中で、type="importmap"として、importsをまとめて書く -->
+    <script type="importmap">
+        {
+            "imports" : {
+                "three" : "https://unpkg.com/three@0.162.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <!-- 使いたいスクリプトをtype="module"として宣言 -->
+    <script type="module" src="./hand-tracking.js" defer></script>
+    <script type="module" src="./3d-space.js" defer></script>
+
+</head>
+```
+
+```JS
+// 一番上で、importする。
+// * as Name で module の全ての export をimport してNameで管理
+import * as THREE from "three";
+```
+
+6. **変数のスコープ**
+- ループ内での`const`宣言。
+    Q. ループごとに値が変わるのになぜ、`const` でいいのか疑問だった。
+    A. これへの解答は、
+    <mark>まず、`const`はそのブロック内では変更できないというものである。</mark>
+    そのため、ループごとに別のブロックとして認識されるから、ブロック内で変更を加えるもの以外はOK。
+    <mark>逆に言うと、ループごとに初期化されてしまうので、前のループの値を使いたい場合は、グローバルに`let`で宣言する必要がある。</mark>
+
+---
+## MediaPipe for Web
+公式ドキュメント見ればわかる。
+<a href="https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js#video">MP公式ドキュメント</a>
+detectionで得られる結果がどのようなデータ構造をしているのかをconsole.logでしっかり調べることが大事
+
+---
+## Three.js
+1. `Vectorクラス`
+メソッドの紹介見ればわかる。
+<a href="https://qiita.com/aa_debdeb/items/c58d5eda9a4052b5dd2f">メソッド</a>
+2. `Render`
