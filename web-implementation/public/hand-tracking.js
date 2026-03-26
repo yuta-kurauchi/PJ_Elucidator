@@ -36,13 +36,18 @@ let smoothedVector = {
 // 箱の用意(グローバルにつかうため)
 const video = document.getElementById("webCam"); // videoのdom
 let handLandmarker;
+// 画面サイズ
 let width, height;
+// handdata
 let wristPosRial;
 let palmNormal;
 let middle_vec;
 let isRightHand;
-let lastVideoTime = -1; // 画面更新のフラグを初期化
-let isCamRunning = false; // カメラのフラグを初期化
+// 画面更新のフラグを初期化
+let lastVideoTime = -1;
+// カメラのフラグを初期化
+let isCamRunning = false;
+// Canvas classのインスタンス用の箱
 let canvas;
 
 
@@ -218,10 +223,10 @@ function renderLoop() {
                 palmNormal = new THREE.Vector3().crossVectors(pinky_vec, thumb_vec);
             }
 
-            // 
+            
             /* 手の上下判定(デバック用) */
-            // const isUp = palmNormal.y > 0;
-            // console.log(`isUp : ${isUp}`);
+            const isUp = palmNormal.y > 0;
+            console.log(`isUp : ${isUp}`);
         }
         // 手がない場合
         else {
@@ -266,7 +271,6 @@ function makePosVec(landmark) {
             );
         } else {
             // 平滑化 (rawをALPHA(0.2)だけ混ぜる)
-            // 書き方とイメージまとめる。
             smoothedVector[id].lerp(rawPosVec, ALPHA);
         }
     });

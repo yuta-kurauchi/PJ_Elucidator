@@ -16,7 +16,6 @@ export class Canvas {
 
         /* キャンバスに設定 */
         const canvas = document.getElementById("output_canvas");
-        // この書き方について調べる
         canvas.appendChild(this.renderer.domElement);
 
         /* カメラを作成(視野角, 画面のアスペクト比, カメラに映る最短距離, カメラに映る最遠距離) */
