@@ -220,7 +220,8 @@ function renderLoop() {
 
             /* 掌の法線ベクトルを計算 */
             // 右手かどうかの判断
-            isRightHand = detections.handednesses[0][0].categoryName === "Right";
+            // なぜか逆で返ってくるので、!=にしている
+            isRightHand = detections.handednesses[0][0].categoryName !== "Right";
             if (isRightHand) {
                 palmNormal = new THREE.Vector3().crossVectors(thumb_vec, pinky_vec);
             }
@@ -228,8 +229,11 @@ function renderLoop() {
                 palmNormal = new THREE.Vector3().crossVectors(pinky_vec, thumb_vec);
             }
 
-            
-            /* 手の上下判定(デバック用) */
+            /* デバック用 */
+            // 手首の座標
+            // console.log(wristPosRial);
+            console.log(isRightHand);
+            // 掌の上下判定
             const isUp = palmNormal.y > 0;
             console.log(`isUp : ${isUp}`);
         }
