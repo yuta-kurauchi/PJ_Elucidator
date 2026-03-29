@@ -146,10 +146,12 @@ HandLandmarkの初期化
 */
 const createHandLandmarker = async () => {
     /* MediaPipeの初期設定 */
-    const vision = await FilesetResolver.forVisionTasks(
+    try {
+        const vision = await FilesetResolver.forVisionTasks(
         // vision tasksをとってきている。
         // tasksってそもそもなんやねん。solutionが入ってる箱？
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+        // versionをHandaLandmarkerクラスなどと同じにすることで、バグが起こりにくいように修正
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
     );
     /* オプションを選択してインスタンス化 */
     handLandmarker = await HandLandmarker.createFromOptions(
@@ -164,6 +166,9 @@ const createHandLandmarker = async () => {
         });
     /* 解析ループを呼び出す */
     renderLoop();
+    } catch (error) {
+        console.error("HandLandmarkerの初期化でエラー発生:", error);
+    }
 }
 
 /* 
