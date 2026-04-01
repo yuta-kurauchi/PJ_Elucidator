@@ -232,10 +232,10 @@ function renderLoop() {
             /* デバック用 */
             // 手首の座標
             // console.log(wristPosRial);
-            console.log(isRightHand);
-            // 掌の上下判定
-            const isUp = palmNormal.y > 0;
-            console.log(`isUp : ${isUp}`);
+            // console.log(isRightHand);
+            // // 掌の上下判定
+            // const isUp = palmNormal.y > 0;
+            // console.log(`isUp : ${isUp}`);
         }
         // 手がない場合
         else {

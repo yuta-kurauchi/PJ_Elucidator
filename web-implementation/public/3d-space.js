@@ -5,13 +5,18 @@ export class Canvas {
         /* 姿勢制御用のデータ */
         this.handData = {
             "wristPos": undefined, // 手の座標を示すため
+            "wristPosNDC": undefined, // 座標トラッキング用
             "palmNormal": undefined, // 手の表裏を示すため
             "middleVec": undefined, // 手の向きを示すため
             "isRight": undefined //右手の場合のみ動かすため
         }
+        /* サイズ */
+        this.w = width;
+        this.h = height;
+
        /* レンダラーを作成 */
         this.renderer = new THREE.WebGLRenderer();
-        this.renderer.setSize(width, height); // 描画サイズ
+        this.renderer.setSize(this.w, this.h); // 描画サイズ
         this.renderer.setPixelRatio(window.devicePixelRatio); // ピクセル比
 
         /* キャンバスに設定 */
@@ -19,7 +24,7 @@ export class Canvas {
         canvas.appendChild(this.renderer.domElement);
 
         /* カメラを作成(視野角, 画面のアスペクト比, カメラに映る最短距離, カメラに映る最遠距離) */
-        this.camera = new THREE.PerspectiveCamera(60, width / height, 1, 10);
+        this.camera = new THREE.PerspectiveCamera(60, this.w / this.h, 1, 10);
         this.camera.position.z = 5; // カメラを遠ざける。
 
         /* シーンを作成 */
@@ -38,14 +43,20 @@ export class Canvas {
         this.box = new THREE.Mesh(this.geo, this.mat);
         /* メッシュをシーンに追加 */
         this.scene.add(this.box);
+        /* スクリーン座標を取得 */
+        // this.boxWorldPosition = this.box.getWorldPosition(new THREE.Vector3());
+        // // this.boxWorldPosition.project(this.camera);
+        // console.log(this.boxWorldPosition);
 
         /* ループの予約 */
         // コールバック関数だと、thisが参照元を見失い、undefinedになる。
         this.renderer.setAnimationLoop(() => {
             // 吹っ飛ぶので、座標の仕組み調べる。
             if (this.handData.wristPos !== undefined && this.handData.isRight) {
-                this.box.position.copy(this.handData.wristPos);
-                
+                // this.box.position.copy(this.handData.wristPos);
+                // console.log(this.toScreenPos(this.handData.wristPos));
+                const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
+                this.box.position.copy(wristPosWorld);
             }
             // console.log(this.handData);
             /* 画面に表示 */
@@ -55,8 +66,31 @@ export class Canvas {
     /* ハンドデータの更新 */
     upDateData(data) {
         this.handData.wristPos = data.wristPos;
+        this.handData.wristPosNDC = this.toScreenPos(data.wristPos);
         this.handData.palmNormal = data.palmNormal;
         this.handData.middleVec = data.middleVec;
         this.handData.isRight = data.isRight;
+    }
+    /* スクリーン座標への変換 */
+    toScreenPos(pos) {
+        if (pos !== undefined) {
+            /* 画面中心からの相対座標へ変換 */
+            const center2D = new THREE.Vector2(this.w / 2, this.h / 2);
+            const center = new THREE.Vector3(center2D.x, center2D.y, pos.z);
+            const relative_vec = new THREE.Vector3().subVectors(pos, center);
+            const ndc = new THREE.Vector3(relative_vec.x / center2D.x, relative_vec.y / center2D.y, 0);
+            return ndc;
+        } else {
+            return pos;
+        }
+    }
+    /* スクリーン座標をワールド座標へ変換 */
+    worldPointFromScreenPoint( screenPoint, camera ) {
+        let worldPoint = new THREE.Vector3();
+        worldPoint.x = screenPoint.x;
+        worldPoint.y = screenPoint.y;
+        worldPoint.z = 0;
+        worldPoint.unproject( camera );
+        return worldPoint;
     }
 }
