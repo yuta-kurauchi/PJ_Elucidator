@@ -30,10 +30,10 @@ export class Canvas {
 
         /* シーンを作成 */
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x000000);
+        this.scene.background = new THREE.Color(0x949593);
 
         /* ライトを追加 */
-        this.light = new THREE.AmbientLight(0xffffff, 1);
+        this.light = new THREE.AmbientLight(0xffffff, 5);
         this.scene.add(this.light);
 
         /* 立方体のジオメトリを作成(幅、高さ、奥行き) */
@@ -45,14 +45,17 @@ export class Canvas {
         /* メッシュをシーンに追加 */
         // this.scene.add(this.box);
 
+        this.object = null;
         /* GLTF形式のモデルインポート */
         const loader = new GLTFLoader();
         loader.load('./models/Elucidator.glb', (data) => {
             const gltf = data;
-            const object = gltf.scene;
-            object.position.set(0, 0 ,0);
+            this.object = gltf.scene;
+            this.object.scale.set(3, 3, 3);
+            this.object.position.set(0, 0 ,0);
+            this.object.rotateX(Math.PI / 2);
             // シーンに追加
-            this.scene.add(object);
+            this.scene.add(this.object);
         });
 
         /* ループの予約 */
@@ -64,7 +67,7 @@ export class Canvas {
                 // スクリーン内の正規化座標をワールド座標に変換
                 const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
                 // 手にトラッキング
-                this.box.position.copy(wristPosWorld);
+                this.object.position.copy(wristPosWorld);
             }
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
