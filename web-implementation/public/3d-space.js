@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 export class Canvas {
     constructor(width, height) {
@@ -42,23 +43,29 @@ export class Canvas {
         /* ジオメトリとマテリアルからメッシュを作成 */
         this.box = new THREE.Mesh(this.geo, this.mat);
         /* メッシュをシーンに追加 */
-        this.scene.add(this.box);
-        /* スクリーン座標を取得 */
-        // this.boxWorldPosition = this.box.getWorldPosition(new THREE.Vector3());
-        // // this.boxWorldPosition.project(this.camera);
-        // console.log(this.boxWorldPosition);
+        // this.scene.add(this.box);
+
+        /* GLTF形式のモデルインポート */
+        const loader = new GLTFLoader();
+        loader.load('./models/Elucidator.glb', (data) => {
+            const gltf = data;
+            const object = gltf.scene;
+            object.position.set(0, 0 ,0);
+            // シーンに追加
+            this.scene.add(object);
+        });
 
         /* ループの予約 */
         // コールバック関数だと、thisが参照元を見失い、undefinedになる。
         this.renderer.setAnimationLoop(() => {
-            // 吹っ飛ぶので、座標の仕組み調べる。
+            /* 右手トラッキング */
+            // 手が写っていて、それが右手の場合
             if (this.handData.wristPos !== undefined && this.handData.isRight) {
-                // this.box.position.copy(this.handData.wristPos);
-                // console.log(this.toScreenPos(this.handData.wristPos));
+                // スクリーン内の正規化座標をワールド座標に変換
                 const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
+                // 手にトラッキング
                 this.box.position.copy(wristPosWorld);
             }
-            // console.log(this.handData);
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
         });
@@ -78,6 +85,7 @@ export class Canvas {
             const center2D = new THREE.Vector2(this.w / 2, this.h / 2);
             const center = new THREE.Vector3(center2D.x, center2D.y, pos.z);
             const relative_vec = new THREE.Vector3().subVectors(pos, center);
+            // 正規化
             const ndc = new THREE.Vector3(relative_vec.x / center2D.x, relative_vec.y / center2D.y, 0);
             return ndc;
         } else {
@@ -86,6 +94,7 @@ export class Canvas {
     }
     /* スクリーン座標をワールド座標へ変換 */
     worldPointFromScreenPoint( screenPoint, camera ) {
+        // unprojectが破壊的メソッドなので、移してから行う
         let worldPoint = new THREE.Vector3();
         worldPoint.x = screenPoint.x;
         worldPoint.y = screenPoint.y;
