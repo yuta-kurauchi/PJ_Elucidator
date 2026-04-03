@@ -11,7 +11,12 @@ export class Canvas {
             "palmNormal": undefined, // 手の表裏を示すため
             "middleVec": undefined, // 手の向きを示すため
             "isRight": undefined //右手の場合のみ動かすため
-        }
+        };
+        this.handAxes = {
+            "x" : undefined,
+            "y" : undefined,
+            "z" : undefined
+        };
         /* サイズ */
         this.w = width;
         this.h = height;
@@ -68,7 +73,7 @@ export class Canvas {
             this.object.scale.set(2, 2, 2);
             this.object.position.set(0, 0 ,0);
             this.object.rotateX(-Math.PI);
-            this.object.rotateY(-Math.PI / 10);
+            this.object.rotateY(-Math.PI / 8);
             // // 軸表示
             // const objAxes = new THREE.AxesHelper(1);
             // this.object.add(objAxes);
@@ -86,8 +91,19 @@ export class Canvas {
             if (this.handData.wristPos !== undefined && this.handData.isRight) {
                 // スクリーン内の正規化座標をワールド座標に変換
                 const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
-                // 手にトラッキング
+                /* 座標トラッキング */
                 this.handGroup.position.copy(wristPosWorld);
+                /* 姿勢制御 */
+                // 制御用の正規直交座標を計算
+                this.toMakeAxes();
+                // Matrix4に変換
+                const mat4 = new THREE.Matrix4();
+                mat4.makeBasis(this.handAxes.x, this.handAxes.y, this.handAxes.z);
+                // Quaternionに変換
+                const rotQua = new THREE.Quaternion();
+                rotQua.setFromRotationMatrix(mat4);
+                /* 姿勢トラッキング */
+                this.handGroup.quaternion.copy(rotQua);
             }
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
@@ -100,6 +116,15 @@ export class Canvas {
         this.handData.palmNormal = data.palmNormal;
         this.handData.middleVec = data.middleVec;
         this.handData.isRight = data.isRight;
+    }
+    /* 手の正規直交座標を作成 */
+    toMakeAxes() {
+        // 中指方向を基準
+        this.handAxes.x = this.handData.middleVec.normalize();
+        // これってnew必要なんだっけ？そしてなぜ必要？
+        this.handAxes.z = new THREE.Vector3().crossVectors(this.handAxes.x, this.handData.palmNormal).normalize();
+        // z,xから正規直交のyを生成
+        this.handAxes.y = new THREE.Vector3().crossVectors(this.handAxes.z, this.handAxes.x);
     }
     /* スクリーン座標への変換 */
     toScreenPos(pos) {
