@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export class Canvas {
     constructor(width, height) {
@@ -32,6 +33,11 @@ export class Canvas {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x949593);
 
+        // レンダラーを使って環境マップを生成するための準備
+        const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+        // 架空の部屋(RoomEnvironment)を作り、シーン全体の「反射光(environment)」として設定
+        this.scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
         /* ライトを追加 */
         this.light = new THREE.AmbientLight(0xffffff, 5);
         this.scene.add(this.light);
@@ -51,7 +57,7 @@ export class Canvas {
         loader.load('./models/Elucidator.glb', (data) => {
             const gltf = data;
             this.object = gltf.scene;
-            this.object.scale.set(3, 3, 3);
+            this.object.scale.set(2, 2, 2);
             this.object.position.set(0, 0 ,0);
             this.object.rotateX(Math.PI / 2);
             // シーンに追加
