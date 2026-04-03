@@ -5,6 +5,7 @@ services:
     container_name: elucidator-web
     volumes:
       - ./web-implementation:/app/web-implementation
+      - /app/web-implementation/node_modules # node_modulesだけ同期を回避
     working_dir: /app/web-implementation
     ports:
       - "3000:3000"
