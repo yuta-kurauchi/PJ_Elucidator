@@ -119,6 +119,9 @@ function stopAll() {
         // ここで、stream = null にすると、constantをいじるなと怒られる。
         video.srcObject = null;
     }
+
+    // Three.jsのキャンバスを破棄
+    canvas.removeCanvas();
 }
 
 /* 

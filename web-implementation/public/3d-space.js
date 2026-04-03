@@ -4,22 +4,39 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export class Canvas {
     constructor(width, height) {
-        /* 姿勢制御用のデータ */
+        /* 手のデータ */
         this.handData = {
             "wristPos": undefined, // 手の座標を示すため
-            "wristPosNDC": undefined, // 座標トラッキング用
+            "wristPosNDC": new THREE.Vector3(), // 座標トラッキング用
             "palmNormal": undefined, // 手の表裏を示すため
             "middleVec": undefined, // 手の向きを示すため
             "isRight": undefined //右手の場合のみ動かすため
         };
+        /* 姿勢制御用の正規直交軸 */
         this.handAxes = {
-            "x" : undefined,
-            "y" : undefined,
-            "z" : undefined
+            "x" : new THREE.Vector3(),
+            "y" : new THREE.Vector3(),
+            "z" : new THREE.Vector3()
         };
+        /* quaternion生成用matrix4 */
+        this.mat4 = new THREE.Matrix4();
+        /* 回転qua */
+        this.rotQua = new THREE.Quaternion();
+        /* quaternionの平滑化用 */
+        this.somoothedQua = new THREE.Quaternion();
+        // 平滑化用の定数
+        const ALPHA = 0.2;
+        // 前回のデータがあるかのフラグ
+        this.isTracking = false;
         /* サイズ */
         this.w = width;
         this.h = height;
+        /* スクリーン座標計算用(toScreanPos) */
+        this.center2D = new THREE.Vector2(this.w / 2, this.h / 2);
+        this.center = new THREE.Vector3(this.center2D.x, this.center2D.y, 0);
+        this.relative_vec = new THREE.Vector3();
+        /* 座標トラッキング用のワールド座標 */
+        this.wristPosWorld = new THREE.Vector3();
 
        /* レンダラーを作成 */
         this.renderer = new THREE.WebGLRenderer();
@@ -27,8 +44,8 @@ export class Canvas {
         this.renderer.setPixelRatio(window.devicePixelRatio); // ピクセル比
 
         /* キャンバスに設定 */
-        const canvas = document.getElementById("output_canvas");
-        canvas.appendChild(this.renderer.domElement);
+        this.canvas = document.getElementById("output_canvas");
+        this.canvas.appendChild(this.renderer.domElement);
 
         /* カメラを作成(視野角, 画面のアスペクト比, カメラに映る最短距離, カメラに映る最遠距離) */
         this.camera = new THREE.PerspectiveCamera(60, this.w / this.h, 1, 10);
@@ -85,25 +102,36 @@ export class Canvas {
 
         /* ループの予約 */
         // コールバック関数だと、thisが参照元を見失い、undefinedになる。
+        // ループ内でnewを使うな!!
         this.renderer.setAnimationLoop(() => {
             /* 右手トラッキング */
             // 手が写っていて、それが右手の場合
             if (this.handData.wristPos !== undefined && this.handData.isRight) {
                 // スクリーン内の正規化座標をワールド座標に変換
-                const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
+                this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
                 /* 座標トラッキング */
-                this.handGroup.position.copy(wristPosWorld);
+                this.handGroup.position.copy(this.wristPosWorld);
                 /* 姿勢制御 */
                 // 制御用の正規直交座標を計算
                 this.toMakeAxes();
                 // Matrix4に変換
-                const mat4 = new THREE.Matrix4();
-                mat4.makeBasis(this.handAxes.x, this.handAxes.y, this.handAxes.z);
+                this.mat4.makeBasis(this.handAxes.x, this.handAxes.y, this.handAxes.z);
                 // Quaternionに変換
-                const rotQua = new THREE.Quaternion();
-                rotQua.setFromRotationMatrix(mat4);
+                this.rotQua.setFromRotationMatrix(this.mat4);
+                if (!this.isTracking) {
+                    // 前のデータがない場合
+                    this.somoothedQua.copy(this.rotQua);
+                    // データができたので、フラグを立てる
+                    this.isTracking = true;
+                } else {
+                    // 前のデータがある場合
+                    this.somoothedQua.slerp(this.rotQua, ALPHA);
+                }
                 /* 姿勢トラッキング */
-                this.handGroup.quaternion.copy(rotQua);
+                this.handGroup.quaternion.copy(this.somoothedQua);
+            } else {
+                // フラグを折る
+                this.isTracking = false;
             }
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
@@ -112,7 +140,7 @@ export class Canvas {
     /* ハンドデータの更新 */
     upDateData(data) {
         this.handData.wristPos = data.wristPos;
-        this.handData.wristPosNDC = this.toScreenPos(data.wristPos);
+        this.toScreenPos(data.wristPos);
         this.handData.palmNormal = data.palmNormal;
         this.handData.middleVec = data.middleVec;
         this.handData.isRight = data.isRight;
@@ -120,34 +148,54 @@ export class Canvas {
     /* 手の正規直交座標を作成 */
     toMakeAxes() {
         // 中指方向を基準
-        this.handAxes.x = this.handData.middleVec.normalize();
+        this.handAxes.x.copy(this.handData.middleVec.normalize());
         // これってnew必要なんだっけ？そしてなぜ必要？
-        this.handAxes.z = new THREE.Vector3().crossVectors(this.handAxes.x, this.handData.palmNormal).normalize();
+        // newは新しく指定のクラスのインスタンスを作成するのに必要
+        this.handAxes.z.crossVectors(this.handAxes.x, this.handData.palmNormal).normalize();
         // z,xから正規直交のyを生成
-        this.handAxes.y = new THREE.Vector3().crossVectors(this.handAxes.z, this.handAxes.x);
+        this.handAxes.y.crossVectors(this.handAxes.z, this.handAxes.x);
     }
     /* スクリーン座標への変換 */
+    // z軸、奥行きも反映できるようにしたい。
     toScreenPos(pos) {
         if (pos !== undefined) {
             /* 画面中心からの相対座標へ変換 */
-            const center2D = new THREE.Vector2(this.w / 2, this.h / 2);
-            const center = new THREE.Vector3(center2D.x, center2D.y, pos.z);
-            const relative_vec = new THREE.Vector3().subVectors(pos, center);
+            this.relative_vec.subVectors(pos, this.center);
             // 正規化
-            const ndc = new THREE.Vector3(relative_vec.x / center2D.x, relative_vec.y / center2D.y, 0);
-            return ndc;
-        } else {
-            return pos;
+            // 奥行きはpos.zでそのまま入れればいいのでは？(mpとの軸の違いに注意)
+            this.handData.wristPosNDC.set(this.relative_vec.x / this.center2D.x, this.relative_vec.y / this.center2D.y, 0);
         }
+        // loopの条件で、undefinedの場合wristPosNDCの値は使われないので、初期値のままでok
     }
     /* スクリーン座標をワールド座標へ変換 */
     worldPointFromScreenPoint( screenPoint, camera ) {
         // unprojectが破壊的メソッドなので、移してから行う
-        let worldPoint = new THREE.Vector3();
-        worldPoint.x = screenPoint.x;
-        worldPoint.y = screenPoint.y;
-        worldPoint.z = 0;
-        worldPoint.unproject( camera );
-        return worldPoint;
+        this.wristPosWorld.set(screenPoint.x, screenPoint.y, 0);
+        this.wristPosWorld.unproject( camera );
+    }
+    /* キャンバスの除去 */
+    removeCanvas() {
+        // animationLoopをキャンセル
+        this.renderer.setAnimationLoop(null);
+        // traverse(巡回)して、メッシュを消去
+        this.scene.traverse(function (object) {
+            if (object.isMesh) {
+                object.geometry.dispose();
+                object.material.dispose();
+            }
+        });
+        // オブジェクトがなくなるまでループしてシーンを空にする。
+        while(this.scene.children.length > 0) {
+            this.scene.remove(this.scene.children[0]);
+        }
+        // webGLコンテキストを破棄
+        this.renderer.dispose();
+        // 強制的にコンテキストを失わせる
+        this.renderer.forceContextLoss();
+        // DOMから消去
+        // disposeの前に書くべきでは？
+        if (this.renderer && this.renderer.domElement) {
+            this.canvas.removeChild(this.renderer.domElement);
+        }
     }
 }
