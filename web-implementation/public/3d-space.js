@@ -42,14 +42,22 @@ export class Canvas {
         this.light = new THREE.AmbientLight(0xffffff, 5);
         this.scene.add(this.light);
 
-        /* 立方体のジオメトリを作成(幅、高さ、奥行き) */
-        this.geo = new THREE.BoxGeometry(1, 1, 1);
-        /* マテリアルを作成 */
-        this.mat = new THREE.MeshNormalMaterial();
-        /* ジオメトリとマテリアルからメッシュを作成 */
-        this.box = new THREE.Mesh(this.geo, this.mat);
-        /* メッシュをシーンに追加 */
+        // /* 立方体のジオメトリを作成(幅、高さ、奥行き) */
+        // this.geo = new THREE.BoxGeometry(1, 1, 1);
+        // /* マテリアルを作成 */
+        // this.mat = new THREE.MeshNormalMaterial();
+        // /* ジオメトリとマテリアルからメッシュを作成 */
+        // this.box = new THREE.Mesh(this.geo, this.mat);
+        // /* メッシュをシーンに追加 */
         // this.scene.add(this.box);
+
+        /* モデルを動かすための親を作成 */
+        this.handGroup = new THREE.Group();
+        this.handGroup.rotateX(-Math.PI / 2);
+        this.scene.add(this.handGroup);
+        // ローカル座標軸を表示(引数は長さ)
+        const groupAxes = new THREE.AxesHelper(2);
+        this.handGroup.add(groupAxes);
 
         this.object = null;
         /* GLTF形式のモデルインポート */
@@ -59,9 +67,15 @@ export class Canvas {
             this.object = gltf.scene;
             this.object.scale.set(2, 2, 2);
             this.object.position.set(0, 0 ,0);
-            this.object.rotateX(Math.PI / 2);
-            // シーンに追加
-            this.scene.add(this.object);
+            this.object.rotateX(-Math.PI);
+            this.object.rotateY(-Math.PI / 10);
+            // // 軸表示
+            // const objAxes = new THREE.AxesHelper(1);
+            // this.object.add(objAxes);
+            // // シーンに追加
+            // this.scene.add(this.object);
+            /* 子にモデルを追加 */
+            this.handGroup.add(this.object);
         });
 
         /* ループの予約 */
@@ -73,7 +87,7 @@ export class Canvas {
                 // スクリーン内の正規化座標をワールド座標に変換
                 const wristPosWorld = this.worldPointFromScreenPoint(this.handData.wristPosNDC, this.camera);
                 // 手にトラッキング
-                this.object.position.copy(wristPosWorld);
+                this.handGroup.position.copy(wristPosWorld);
             }
             /* 画面に表示 */
             this.renderer.render(this.scene, this.camera);
