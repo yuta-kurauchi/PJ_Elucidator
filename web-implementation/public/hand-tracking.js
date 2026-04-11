@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Main 
 */
 function main() {
+    // ボタンのセット
     camStartBtn();
     camStopBtn();
 }
