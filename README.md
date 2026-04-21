@@ -28,4 +28,30 @@ WEBCAM-HANDTRACKING-3D-VIEWER/
 │   └── Dockerfile        # Node.js環境構築用
 ├── docker-compose.yml    # コンテナ起動用定義ファイル
 └── README.md
+```
 
+## 環境構築の方法
+1. リポジトリーをクローン
+```Bash
+git clone [https://github.com/ユーザー名/WebCam-Hand-Tracking-3D-Viewer.git](https://github.com/ユーザー名/WebCam-Hand-Tracking-3D-Viewer.git)
+cd WebCam-Hand-Tracking-3D-Viewer
+```
+2. Docker Composeを用いてコンテナをビルド・起動
+```Bash
+docker compose up -d --build
+```
+3. ブラウザで以下のURLにアクセス
+```PlaneText
+http://localhost:3000
+```
+※ 終了時は `docker compose down` を実行。
+
+
+## 今後の展望 (Future Work)
+現在は「特定の3Dモデルを直接動かす」仕様ですが、今後は以下のステップでシステムの一般化（ライブラリ化）と拡張を行う予定です。
+
+1. システムの一般化（手のモデル化と把持システムの構築）
+    直接任意のモデルを動かすのではなく、「3D空間上に『手』のモデルを生成してトラッキング」させます。その上で「手が他のオブジェクトを掴む（アタッチする）」機構を実装することで、各オブジェクト固有の初期オフセット計算を不要にし、汎用的なインタラクションを可能にします。
+2. WebARアプリケーションへの応用
+    このトラッキング＆把持システムを基盤（ライブラリ）として活用し、当たり判定（Collision）やゲームロジックを組み込んだWebブラウザで遊べるARリズムゲーム（Beat Saber風）の開発を目指します。
+    
