@@ -6,7 +6,7 @@ Webカメラの映像からリアルタイムで手のランドマークを検�
 現在はプロトタイプとして、手の動きに合わせて特定の3Dモデル（剣）の姿勢制御を行う実装まで完了しています。
 
 ## デモ (Demo)
-※ここにGIF動画を追加予定
+![Webハンドトラッキングのデモ映像](./demo/Web_HandTracking_demo.gif)
 
 ## 使用している主な技術 (Tech Stack)
 * **フロントエンド**: HTML / CSS / Vanilla JavaScript
