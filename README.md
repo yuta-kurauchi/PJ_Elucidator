@@ -6,10 +6,13 @@ Webカメラの映像からリアルタイムで手のランドマークを検�
 現在はプロトタイプとして、手の動きに合わせて特定の3Dモデル（剣）の姿勢制御を行う実装まで完了しています。
 
 ## デモ (Demo)
-![Webハンドトラッキングのデモ映像](./demo/Web_HandTracking_demo.gif)
 
-**Webカメラによる一人称視点でのハンドトラッキング**
-MediaPipeが検出した手の動き（座標・回転）をThree.js上の3Dモデルにリアルタイムに反映・姿勢制御しています。
+<p align="center">
+  <img src="./demo/Web_HandTracking_demo.gif" alt="Webハンドトラッキングのデモ映像" width="80%">
+  <br><br>
+  <strong>Webカメラによる一人称視点でのハンドトラッキング</strong><br>
+  MediaPipeが検出した手の動き（座標・回転）をThree.js上の3Dモデルにリアルタイムに反映・姿勢制御しています。
+</p>
 
 ## 使用している主な技術 (Tech Stack)
 * **フロントエンド**: HTML / CSS / Vanilla JavaScript
